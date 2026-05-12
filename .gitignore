@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.vault_key
+.vault_key*
+*.zip
+
+medviet-governance/data/raw/*.csv
+medviet-governance/reports/*.tmp

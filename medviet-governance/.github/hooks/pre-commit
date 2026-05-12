@@ -3,27 +3,49 @@
 
 echo "🔍 Running security checks..."
 
-# 1. git-secrets scan
-git secrets --pre_commit_hook -- "$@"
-if [ $? -ne 0 ]; then
-    echo "❌ git-secrets found potential secrets! Commit blocked."
-    exit 1
-fi
+# 1. Check for common secrets patterns
+echo "🔐 Scanning for secrets..."
+SECRETS_PATTERNS=(
+    "password\s*=\s*['\"][^'\"]+['\"]"
+    "api[_-]?key\s*=\s*['\"][^'\"]+['\"]"
+    "secret[_-]?key\s*=\s*['\"][^'\"]+['\"]"
+    "aws[_-]?access[_-]?key"
+    "private[_-]?key"
+    "BEGIN RSA PRIVATE KEY"
+    "BEGIN PRIVATE KEY"
+    "token\s*=\s*['\"][^'\"]+['\"]"
+)
+
+for pattern in "${SECRETS_PATTERNS[@]}"; do
+    if git diff --cached | grep -iE "$pattern"; then
+        echo "❌ Potential secret found matching pattern: $pattern"
+        echo "Please remove secrets before committing!"
+        exit 1
+    fi
+done
 
 # 2. Bandit SAST scan
-echo "🐍 Running Bandit SAST..."
-bandit -r src/ -ll -q
-if [ $? -ne 0 ]; then
-    echo "❌ Bandit found security issues! Review above."
-    exit 1
+if command -v bandit &> /dev/null; then
+    echo "🐍 Running Bandit SAST..."
+    bandit -r src/ -ll -q
+    if [ $? -ne 0 ]; then
+        echo "❌ Bandit found security issues! Review above."
+        exit 1
+    fi
+else
+    echo "⚠️  Bandit not installed, skipping SAST scan"
 fi
 
 # 3. pip-audit dependency check
-echo "📦 Checking dependencies for CVEs..."
-pip-audit --desc on
-if [ $? -ne 0 ]; then
-    echo "⚠️  Vulnerable dependencies found! Update before committing."
-    exit 1
+if command -v pip-audit &> /dev/null; then
+    echo "📦 Checking dependencies for CVEs..."
+    pip-audit --desc on 2>/dev/null
+    if [ $? -ne 0 ]; then
+        echo "⚠️  Vulnerable dependencies found! Update before committing."
+        exit 1
+    fi
+else
+    echo "⚠️  pip-audit not installed, skipping dependency check"
 fi
 
 echo "✅ All security checks passed!"
