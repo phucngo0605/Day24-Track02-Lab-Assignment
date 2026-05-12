@@ -1,7 +1,13 @@
 # tests/test_pii.py
 import pytest
 import pandas as pd
+from pathlib import Path
+import sys
+
 from src.pii.anonymizer import MedVietAnonymizer
+
+sys.path.append(str(Path(__file__).resolve().parents[1] / "scripts"))
+from generate_data import generate_patients
 
 @pytest.fixture
 def anonymizer():
@@ -9,7 +15,10 @@ def anonymizer():
 
 @pytest.fixture
 def sample_df():
-    return pd.read_csv("data/raw/patients_raw.csv").head(50)
+    raw_path = Path("data/raw/patients_raw.csv")
+    if raw_path.exists():
+        return pd.read_csv(raw_path).head(50)
+    return generate_patients().head(50)
 
 class TestPIIDetection:
 

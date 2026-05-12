@@ -2,9 +2,11 @@
 import pandas as pd
 from faker import Faker
 import random
+from pathlib import Path
 
 fake = Faker("vi_VN")
 Faker.seed(42)
+random.seed(42)
 
 def generate_patients(n=200):
     records = []
@@ -28,7 +30,11 @@ def generate_patients(n=200):
         })
     return pd.DataFrame(records)
 
-df = generate_patients()
-df.to_csv("data/raw/patients_raw.csv", index=False)
-print(f"Generated {len(df)} patient records")
-print(df.head(3))
+if __name__ == "__main__":
+    output_path = Path("data/raw/patients_raw.csv")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    df = generate_patients()
+    df.to_csv(output_path, index=False)
+    print(f"Generated {len(df)} patient records")
+    print(df.head(3))
